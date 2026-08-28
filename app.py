@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 # 1. 页面与全局设置
-st.set_page_config(page_title="IT数据看板", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="周报数据看板", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
 <style>
@@ -13,22 +13,24 @@ st.markdown("""
     h1 { font-family: 'Playfair Display', serif; color: #1A1A1A; font-size: 2.8rem !important; margin-bottom: 0px !important; padding-bottom: 0px !important; }
     .subtitle { color: #666666; font-size: 1rem; margin-bottom: 2rem; }
     
-    /* 核心修改：正方形卡片样式 */
+    /* 核心修改：卡片尺寸缩小，上下间距增大 */
     .metric-card { 
         background-color: #FFFFFF; 
         border-radius: 16px; 
-        padding: 16px; 
+        padding: 12px; /* 内部留白缩小 */
         box-shadow: 0 4px 20px rgba(0,0,0,0.03); 
         border: 1px solid rgba(0,0,0,0.02); 
-        margin-bottom: 16px; 
-        aspect-ratio: 1 / 1; /* 强制正方形 */
+        margin-bottom: 24px; /* 卡片上下的间距变大 */
+        max-width: 160px; /* 强制限制卡片最大宽度，让它显得更小 */
+        aspect-ratio: 1 / 1; 
         display: flex;
         flex-direction: column;
-        justify-content: center; /* 内容垂直居中 */
+        justify-content: center; 
     }
-    .metric-title { color: #7A7A7A; font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 6px; margin-bottom: 8px;}
-    .metric-value { color: #1A1A1A; font-size: 1.5rem; font-weight: 700; margin: 0 0 8px 0; line-height: 1.2;}
-    .metric-trend { font-size: 0.75rem; font-weight: 600; }
+    /* 对应调小内部字号，防止溢出 */
+    .metric-title { color: #7A7A7A; font-size: 0.75rem; font-weight: 500; display: flex; align-items: center; gap: 4px; margin-bottom: 6px;}
+    .metric-value { color: #1A1A1A; font-size: 1.2rem; font-weight: 700; margin: 0 0 6px 0; line-height: 1.2;}
+    .metric-trend { font-size: 0.7rem; font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -79,7 +81,6 @@ start_idx = dates.index(start_week)
 end_idx = dates.index(end_week)
 df_filtered = df.iloc[start_idx:end_idx+1]
 
-# 获取当前周和上一周的数据用于 KPI 卡片
 current_idx = dates.index(selected_week)
 current_data = df.iloc[current_idx]
 prev_data = df.iloc[current_idx - 1] if current_idx > 0 else None
@@ -119,29 +120,29 @@ def create_compare_card(title, current_val, prev_val, is_currency=False, is_perc
     </div>
     """
 
-# 核心修改：统一使用 st.columns(5)，不满5个的列留空，实现靠左对齐且等宽
-# --- 第一排 (4个指标，最后1列空置) ---
-r1 = st.columns(5)
+# 核心修改：在 st.columns 中加入 gap="large"，让左右间距彻底拉开
+# --- 第一排 ---
+r1 = st.columns(5, gap="large")
 with r1[0]: st.markdown(create_compare_card("销售额 (Superset)", current_data['销售额(superset)'], prev_data['销售额(superset)'] if prev_data is not None else None, is_currency=True, icon="💰"), unsafe_allow_html=True)
 with r1[1]: st.markdown(create_compare_card("流量 (GA4)", current_data['流量(GA4)'], prev_data['流量(GA4)'] if prev_data is not None else None, icon="🌐"), unsafe_allow_html=True)
 with r1[2]: st.markdown(create_compare_card("流量 (Blog)", current_data['流量(Blog)'], prev_data['流量(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
 with r1[3]: st.markdown(create_compare_card("流量 (站内)", current_data['流量(站内)'], prev_data['流量(站内)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
 
-# --- 第二排 (5个指标，填满) ---
-r2 = st.columns(5)
+# --- 第二排 ---
+r2 = st.columns(5, gap="large")
 with r2[0]: st.markdown(create_compare_card("点击 (GSC)", current_data['点击(GSC)'], prev_data['点击(GSC)'] if prev_data is not None else None, icon="🖱️"), unsafe_allow_html=True)
 with r2[1]: st.markdown(create_compare_card("点击 (非品牌词)", current_data['点击(非品牌词)'], prev_data['点击(非品牌词)'] if prev_data is not None else None, icon="🔍"), unsafe_allow_html=True)
 with r2[2]: st.markdown(create_compare_card("点击 (Blog)", current_data['点击(Blog)'], prev_data['点击(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
 with r2[3]: st.markdown(create_compare_card("点击 (非Blog)", current_data['点击(非Blog)'], prev_data['点击(非Blog)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
 with r2[4]: st.markdown(create_compare_card("非品牌词BlogUTM", current_data['点击(非品牌词BlogUTM)'], prev_data['点击(非品牌词BlogUTM)'] if prev_data is not None else None, icon="🔗"), unsafe_allow_html=True)
 
-# --- 第三排 (2个指标，最后3列空置) ---
-r3 = st.columns(5)
+# --- 第三排 ---
+r3 = st.columns(5, gap="large")
 with r3[0]: st.markdown(create_compare_card("销售额 (AI Assis)", current_data['销售额(AI Assistant)'], prev_data['销售额(AI Assistant)'] if prev_data is not None else None, is_currency=True, icon="🤖💰"), unsafe_allow_html=True)
 with r3[1]: st.markdown(create_compare_card("流量 (AI Assis)", current_data['流量(AI Assistant)'], prev_data['流量(AI Assistant)'] if prev_data is not None else None, icon="🤖👥"), unsafe_allow_html=True)
 
-# --- 第四排 (3个指标，最后2列空置) ---
-r4 = st.columns(5)
+# --- 第四排 ---
+r4 = st.columns(5, gap="large")
 with r4[0]: st.markdown(create_compare_card("AI Perf (总展示)", current_data['AI Performance(总展示)'], prev_data['AI Performance(总展示)'] if prev_data is not None else None, icon="✨"), unsafe_allow_html=True)
 with r4[1]: st.markdown(create_compare_card("AI Perf (非Blog)", current_data['AI Performance(非Blog)'], prev_data['AI Performance(非Blog)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
 with r4[2]: st.markdown(create_compare_card("AI Perf (Blog)", current_data['AI Performance(Blog)'], prev_data['AI Performance(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
@@ -158,7 +159,7 @@ def apply_chart_style(fig):
     return fig
 
 
-# 7. 全量图表展示区 (一排一张图)
+# 7. 全量图表展示区
 st.markdown("<br>", unsafe_allow_html=True)
 
 # -- 第一张图：Superset 销售额 (带标签的柱状图) --
