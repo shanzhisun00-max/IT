@@ -120,16 +120,16 @@ def create_compare_card(title, current_val, prev_val, is_currency=False, is_perc
     </div>
     """
 
-# 核心修改：在 st.columns 中加入 gap="middle"，让左右间距彻底拉开
+# 核心修改：在 st.columns 中加入 gap="large"，让左右间距彻底拉开
 # --- 第一排 ---
-r1 = st.columns(5, gap="middle")
+r1 = st.columns(5, gap="large")
 with r1[0]: st.markdown(create_compare_card("销售额 (Superset)", current_data['销售额(superset)'], prev_data['销售额(superset)'] if prev_data is not None else None, is_currency=True, icon="💰"), unsafe_allow_html=True)
 with r1[1]: st.markdown(create_compare_card("流量 (GA4)", current_data['流量(GA4)'], prev_data['流量(GA4)'] if prev_data is not None else None, icon="🌐"), unsafe_allow_html=True)
 with r1[2]: st.markdown(create_compare_card("流量 (Blog)", current_data['流量(Blog)'], prev_data['流量(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
 with r1[3]: st.markdown(create_compare_card("流量 (站内)", current_data['流量(站内)'], prev_data['流量(站内)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
 
 # --- 第二排 ---
-r2 = st.columns(5, gap="middle")
+r2 = st.columns(5, gap="large")
 with r2[0]: st.markdown(create_compare_card("点击 (GSC)", current_data['点击(GSC)'], prev_data['点击(GSC)'] if prev_data is not None else None, icon="🖱️"), unsafe_allow_html=True)
 with r2[1]: st.markdown(create_compare_card("点击 (非品牌词)", current_data['点击(非品牌词)'], prev_data['点击(非品牌词)'] if prev_data is not None else None, icon="🔍"), unsafe_allow_html=True)
 with r2[2]: st.markdown(create_compare_card("点击 (Blog)", current_data['点击(Blog)'], prev_data['点击(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
@@ -137,12 +137,12 @@ with r2[3]: st.markdown(create_compare_card("点击 (非Blog)", current_data['�
 with r2[4]: st.markdown(create_compare_card("点击 (非品牌词BlogUTM)", current_data['点击(非品牌词BlogUTM)'], prev_data['点击(非品牌词BlogUTM)'] if prev_data is not None else None, icon="🔗"), unsafe_allow_html=True)
 
 # --- 第三排 ---
-r3 = st.columns(5, gap="middle")
+r3 = st.columns(5, gap="large")
 with r3[0]: st.markdown(create_compare_card("销售额 (AI Assistant)", current_data['销售额(AI Assistant)'], prev_data['销售额(AI Assistant)'] if prev_data is not None else None, is_currency=True, icon="🤖💰"), unsafe_allow_html=True)
 with r3[1]: st.markdown(create_compare_card("流量 (AI Assistant)", current_data['流量(AI Assistant)'], prev_data['流量(AI Assistant)'] if prev_data is not None else None, icon="🤖👥"), unsafe_allow_html=True)
 
 # --- 第四排 ---
-r4 = st.columns(5, gap="middle")
+r4 = st.columns(5, gap="large")
 with r4[0]: st.markdown(create_compare_card("AI Performance (总展示)", current_data['AI Performance(总展示)'], prev_data['AI Performance(总展示)'] if prev_data is not None else None, icon="✨"), unsafe_allow_html=True)
 with r4[1]: st.markdown(create_compare_card("AI Performance (非Blog)", current_data['AI Performance(非Blog)'], prev_data['AI Performance(非Blog)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
 with r4[2]: st.markdown(create_compare_card("AI Performance (Blog)", current_data['AI Performance(Blog)'], prev_data['AI Performance(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
