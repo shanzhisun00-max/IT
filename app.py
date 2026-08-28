@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 # 1. 页面与全局设置
-st.set_page_config(page_title="IT周报数据", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="IT数据看板", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
 <style>
@@ -12,10 +12,10 @@ st.markdown("""
     .stApp { background-color: #FDF9FA; font-family: 'Inter', sans-serif; }
     h1 { font-family: 'Playfair Display', serif; color: #1A1A1A; font-size: 2.8rem !important; margin-bottom: 0px !important; padding-bottom: 0px !important; }
     .subtitle { color: #666666; font-size: 1rem; margin-bottom: 2rem; }
-    .metric-card { background-color: #FFFFFF; border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-bottom: 16px; }
-    .metric-title { color: #7A7A7A; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 8px;}
-    .metric-value { color: #1A1A1A; font-size: 2rem; font-weight: 700; margin: 8px 0; }
-    .metric-trend { font-size: 0.85rem; font-weight: 600; }
+    .metric-card { background-color: #FFFFFF; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-bottom: 16px; }
+    .metric-title { color: #7A7A7A; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 8px;}
+    .metric-value { color: #1A1A1A; font-size: 1.8rem; font-weight: 700; margin: 8px 0; }
+    .metric-trend { font-size: 0.8rem; font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -45,15 +45,14 @@ dates = df['日期'].tolist()
 
 # 3. 侧边栏与时间筛选
 with st.sidebar:
-    st.markdown("### IT数据看板控制台")
+    st.markdown("### ⚙️ :it:数据看板控制台")
     st.divider()
     
-    st.markdown("#### 周期选择")
+    st.markdown("#### 📌 核心指标设置")
     selected_week = st.selectbox("选择要查看的单周", dates, index=len(dates)-1)
     
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("#### 趋势图时间范围")
-    # 默认选中第一周到最后一周
+    st.markdown("#### 📈 趋势图时间范围")
     start_week, end_week = st.select_slider(
         "滑动选择图表展示周期",
         options=dates,
@@ -73,12 +72,12 @@ current_data = df.iloc[current_idx]
 prev_data = df.iloc[current_idx - 1] if current_idx > 0 else None
 
 # 4. 主视觉区头部
-st.markdown("<h1>IT Weekly Analytics Dashboard</h1>", unsafe_allow_html=True)
+st.markdown("<h1>Weekly Analytics Dashboard</h1>", unsafe_allow_html=True)
 st.markdown(f"<div class='subtitle'>Track. Analyze. Optimize. Grow. ✨ | 当前指标周：{selected_week}</div>", unsafe_allow_html=True)
 
-# 5. 核心指标卡片区 (带两周对比)
+
+# 5. 核心指标卡片区 (多排自定义布局)
 st.markdown("##### 💡 核心指标总览")
-col1, col2, col3, col4 = st.columns(4)
 
 def create_compare_card(title, current_val, prev_val, is_currency=False, is_percent=False, icon="👁️"):
     prefix = "$" if is_currency else ""
@@ -107,16 +106,34 @@ def create_compare_card(title, current_val, prev_val, is_currency=False, is_perc
     </div>
     """
 
-with col1: 
-    st.markdown(create_compare_card("销售额", current_data['销售额(superset)'], prev_data['销售额(superset)'] if prev_data is not None else None, is_currency=True, icon="💰"), unsafe_allow_html=True)
-with col2: 
-    st.markdown(create_compare_card("点击", current_data['点击(非品牌词BlogUTM)'], prev_data['点击(非品牌词BlogUTM)'] if prev_data is not None else None, is_percent=True, icon="📈"), unsafe_allow_html=True)
-with col3: 
-    st.markdown(create_compare_card("总流量 (GA4)", current_data['流量(GA4)'], prev_data['流量(GA4)'] if prev_data is not None else None, icon="👥"), unsafe_allow_html=True)
-with col4: 
-    st.markdown(create_compare_card("总点击 (GSC)", current_data['点击(GSC)'], prev_data['点击(GSC)'] if prev_data is not None else None, icon="🖱️"), unsafe_allow_html=True)
+# --- 第一排 (4个指标) ---
+r1_c1, r1_c2, r1_c3, r1_c4 = st.columns(4)
+with r1_c1: st.markdown(create_compare_card("销售额 (Superset)", current_data['销售额(superset)'], prev_data['销售额(superset)'] if prev_data is not None else None, is_currency=True, icon="💰"), unsafe_allow_html=True)
+with r1_c2: st.markdown(create_compare_card("流量 (GA4)", current_data['流量(GA4)'], prev_data['流量(GA4)'] if prev_data is not None else None, icon="🌐"), unsafe_allow_html=True)
+with r1_c3: st.markdown(create_compare_card("流量 (Blog)", current_data['流量(Blog)'], prev_data['流量(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
+with r1_c4: st.markdown(create_compare_card("流量 (站内)", current_data['流量(站内)'], prev_data['流量(站内)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
 
-# 6. 通用图表设置函数 (增大 top margin 防止标签被遮挡)
+# --- 第二排 (5个指标) ---
+r2_c1, r2_c2, r2_c3, r2_c4, r2_c5 = st.columns(5)
+with r2_c1: st.markdown(create_compare_card("点击 (GSC)", current_data['点击(GSC)'], prev_data['点击(GSC)'] if prev_data is not None else None, icon="🖱️"), unsafe_allow_html=True)
+with r2_c2: st.markdown(create_compare_card("点击 (非品牌词)", current_data['点击(非品牌词)'], prev_data['点击(非品牌词)'] if prev_data is not None else None, icon="🔍"), unsafe_allow_html=True)
+with r2_c3: st.markdown(create_compare_card("点击 (Blog)", current_data['点击(Blog)'], prev_data['点击(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
+with r2_c4: st.markdown(create_compare_card("点击 (非Blog)", current_data['点击(非Blog)'], prev_data['点击(非Blog)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
+with r2_c5: st.markdown(create_compare_card("点击 (非品牌词BlogUTM)", current_data['点击(非品牌词BlogUTM)'], prev_data['点击(非品牌词BlogUTM)'] if prev_data is not None else None, icon="🔗"), unsafe_allow_html=True)
+
+# --- 第三排 (2个指标) ---
+r3_c1, r3_c2 = st.columns(2)
+with r3_c1: st.markdown(create_compare_card("销售额 (AI Assistant)", current_data['销售额(AI Assistant)'], prev_data['销售额(AI Assistant)'] if prev_data is not None else None, is_currency=True, icon="🤖💰"), unsafe_allow_html=True)
+with r3_c2: st.markdown(create_compare_card("流量 (AI Assistant)", current_data['流量(AI Assistant)'], prev_data['流量(AI Assistant)'] if prev_data is not None else None, icon="🤖👥"), unsafe_allow_html=True)
+
+# --- 第四排 (3个指标) ---
+r4_c1, r4_c2, r4_c3 = st.columns(3)
+with r4_c1: st.markdown(create_compare_card("AI Performance (总展示)", current_data['AI Performance(总展示)'], prev_data['AI Performance(总展示)'] if prev_data is not None else None, icon="✨"), unsafe_allow_html=True)
+with r4_c2: st.markdown(create_compare_card("AI Perf (非Blog)", current_data['AI Performance(非Blog)'], prev_data['AI Performance(非Blog)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
+with r4_c3: st.markdown(create_compare_card("AI Perf (Blog)", current_data['AI Performance(Blog)'], prev_data['AI Performance(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
+
+
+# 6. 通用图表设置函数
 def apply_chart_style(fig):
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", 
@@ -125,6 +142,7 @@ def apply_chart_style(fig):
     )
     fig.update_yaxes(rangemode="tozero", gridcolor='rgba(0,0,0,0.05)')
     return fig
+
 
 # 7. 全量图表展示区 (一排一张图)
 st.markdown("<br>", unsafe_allow_html=True)
@@ -155,7 +173,7 @@ st.plotly_chart(apply_chart_style(fig_traffic), use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 # -- 第四张图：流量结构 --
-st.markdown("##### 👥 GA4流量 (Blog vs 站内)")
+st.markdown("##### 👥 流量结构 (Blog vs 站内)")
 fig_source = px.line(df_filtered, x='日期', y=['流量(Blog)', '流量(站内)'], color_discrete_sequence=COLORS)
 fig_source.update_traces(mode='lines+markers')
 st.plotly_chart(apply_chart_style(fig_source), use_container_width=True)
@@ -163,7 +181,7 @@ st.plotly_chart(apply_chart_style(fig_source), use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 # -- 第五张图：细分点击趋势 --
-st.markdown("##### 🖱️ GSC点击")
+st.markdown("##### 🖱️ 细分点击趋势")
 clicks_cols = ['点击(非品牌词)', '点击(Blog)', '点击(非Blog)', '点击(非品牌词BlogUTM)']
 fig_clicks = px.line(df_filtered, x='日期', y=clicks_cols, color_discrete_sequence=COLORS)
 fig_clicks.update_traces(mode='lines+markers')
@@ -196,7 +214,7 @@ fig_ai.add_trace(go.Bar(
     cliponaxis=False
 ))
 
-# 折线图部分保持原样
+# 折线图部分
 fig_ai.add_trace(go.Scatter(
     x=df_filtered['日期'], 
     y=df_filtered['流量(AI Assistant)'], 
