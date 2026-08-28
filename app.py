@@ -22,7 +22,6 @@ st.markdown("""
         border: 1px solid rgba(0,0,0,0.02); 
         margin-bottom: 24px; /* 卡片上下的间距变大 */
         max-width: 160px; /* 强制限制卡片最大宽度，让它显得更小 */
-        aspect-ratio: 1 / 1; 
         display: flex;
         flex-direction: column;
         justify-content: center; 
