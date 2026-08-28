@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 # 1. 页面与全局设置
 st.set_page_config(page_title="周报数据看板", layout="wide", initial_sidebar_state="expanded")
@@ -14,22 +15,23 @@ st.markdown("""
     .metric-card { background-color: #FFFFFF; border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-bottom: 16px; }
     .metric-title { color: #7A7A7A; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 8px;}
     .metric-value { color: #1A1A1A; font-size: 2rem; font-weight: 700; margin: 8px 0; }
+    .metric-trend { font-size: 0.85rem; font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
 
+# 色板定义
+COLORS = ["#FF5E8E", "#9B72F0", "#FFB6C1", "#C1A3FF", "#FFA07A"]
+
 # 2. 读取并处理 Google 表格数据
-@st.cache_data(ttl=600) # 缓存10分钟，避免频繁请求
+@st.cache_data(ttl=600)
 def load_data():
-    # 将共享链接转换为 CSV 导出链接
     sheet_url = "https://docs.google.com/spreadsheets/d/1eOy9c2EIAD1mGmy7LqF5O_9ITQNga21F4fWJ24Bztwc/export?format=csv&gid=0"
     df = pd.read_csv(sheet_url)
     
-    # 转置表格：将指标名变成列，日期变成行
     df = df.set_index(df.columns[0]).T
     df.reset_index(inplace=True)
     df.rename(columns={'index': '日期'}, inplace=True)
     
-    # 数据清洗：去除 $ 和 % 以及逗号，转换为数字类型
     for col in df.columns:
         if col != '日期':
             df[col] = df[col].astype(str).str.replace('$', '', regex=False)
@@ -39,61 +41,159 @@ def load_data():
     return df
 
 df = load_data()
+dates = df['日期'].tolist()
 
-# 3. 侧边栏与周筛选
+# 3. 侧边栏与时间筛选
 with st.sidebar:
     st.markdown("### ⚙️ 数据看板控制台")
     st.divider()
-    # 提供周筛选下拉菜单，默认选择最新的一周（最后一行）
-    selected_week = st.selectbox("📅 选择查看的周期", df['日期'].tolist(), index=len(df)-1)
+    
+    st.markdown("#### 📌 核心指标设置")
+    selected_week = st.selectbox("选择要查看的单周", dates, index=len(dates)-1)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("#### 📈 趋势图时间范围")
+    # 默认选中第一周到最后一周
+    start_week, end_week = st.select_slider(
+        "滑动选择图表展示周期",
+        options=dates,
+        value=(dates[0], dates[-1])
+    )
     
     st.markdown("<br><br><span style='color:gray;font-size:0.8rem;'>Data auto-synced from Google Sheets</span>", unsafe_allow_html=True)
 
-# 过滤出选中周的数据
-current_data = df[df['日期'] == selected_week].iloc[0]
+# 过滤图表数据
+start_idx = dates.index(start_week)
+end_idx = dates.index(end_week)
+df_filtered = df.iloc[start_idx:end_idx+1]
 
-# 4. 主视觉区
+# 获取当前周和上一周的数据用于 KPI 卡片
+current_idx = dates.index(selected_week)
+current_data = df.iloc[current_idx]
+prev_data = df.iloc[current_idx - 1] if current_idx > 0 else None
+
+# 4. 主视觉区头部
 st.markdown("<h1>Weekly Analytics Dashboard</h1>", unsafe_allow_html=True)
-st.markdown(f"<div class='subtitle'>Track. Analyze. Optimize. Grow. ✨ | 当前视图：{selected_week}</div>", unsafe_allow_html=True)
+st.markdown(f"<div class='subtitle'>Track. Analyze. Optimize. Grow. ✨ | 当前指标周：{selected_week}</div>", unsafe_allow_html=True)
 
-# 5. 核心指标卡片区 (提取 superset 销售额, 转化率, GA4流量, GSC点击)
+# 5. 核心指标卡片区 (带两周对比)
 st.markdown("##### 💡 核心指标总览")
 col1, col2, col3, col4 = st.columns(4)
 
-def create_card(title, value, suffix="", icon="👁️"):
+def create_compare_card(title, current_val, prev_val, is_currency=False, is_percent=False, icon="👁️"):
+    # 格式化数值
+    prefix = "$" if is_currency else ""
+    suffix = "%" if is_percent else ""
+    fmt_curr = f"{current_val:.2f}" if isinstance(current_val, float) else f"{int(current_val)}"
+    
+    if prev_val is not None:
+        diff = current_val - prev_val
+        trend_symbol = "↑" if diff > 0 else ("↓" if diff < 0 else "-")
+        trend_color = "#4CAF50" if diff >= 0 else "#F44336" # 涨绿跌红
+        
+        # 如果是数值，计算百分比变化；如果是比率，直接显示差值
+        if is_percent:
+            trend_text = f"{trend_symbol} {abs(diff):.2f}% vs 上周"
+        else:
+            pct_change = (diff / prev_val * 100) if prev_val != 0 else 0
+            trend_text = f"{trend_symbol} {abs(pct_change):.1f}% vs 上周"
+    else:
+        trend_color = "#999999"
+        trend_text = "无上周数据"
+
     return f"""
     <div class="metric-card">
         <div class="metric-title">{icon} {title}</div>
-        <div class="metric-value">{value}{suffix}</div>
+        <div class="metric-value">{prefix}{fmt_curr}{suffix}</div>
+        <div class="metric-trend" style="color: {trend_color};">{trend_text}</div>
     </div>
     """
 
-with col1: st.markdown(create_card("销售额", f"${current_data['销售额(superset)']:.2f}", icon="💰"), unsafe_allow_html=True)
-with col2: st.markdown(create_card("转化率", f"{current_data['转化率(superset)']:.2f}", suffix="%", icon="📈"), unsafe_allow_html=True)
-with col3: st.markdown(create_card("总流量 (GA4)", f"{int(current_data['流量(GA4)'])}", icon="👥"), unsafe_allow_html=True)
-with col4: st.markdown(create_card("总点击 (GSC)", f"{int(current_data['点击(GSC)'])}", icon="🖱️"), unsafe_allow_html=True)
+with col1: 
+    st.markdown(create_compare_card("销售额", current_data['销售额(superset)'], prev_data['销售额(superset)'] if prev_data is not None else None, is_currency=True, icon="💰"), unsafe_allow_html=True)
+with col2: 
+    st.markdown(create_compare_card("转化率", current_data['转化率(superset)'], prev_data['转化率(superset)'] if prev_data is not None else None, is_percent=True, icon="📈"), unsafe_allow_html=True)
+with col3: 
+    st.markdown(create_compare_card("总流量 (GA4)", current_data['流量(GA4)'], prev_data['流量(GA4)'] if prev_data is not None else None, icon="👥"), unsafe_allow_html=True)
+with col4: 
+    st.markdown(create_compare_card("总点击 (GSC)", current_data['点击(GSC)'], prev_data['点击(GSC)'] if prev_data is not None else None, icon="🖱️"), unsafe_allow_html=True)
 
-# 6. 图表区
+# 6. 通用图表设置函数
+def apply_chart_style(fig):
+    fig.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", 
+        margin=dict(l=0, r=0, t=30, b=0),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1) # 图例放顶部
+    )
+    fig.update_yaxes(rangemode="tozero", gridcolor='rgba(0,0,0,0.05)') # Y轴从0开始，加淡灰色网格线
+    return fig
+
+# 7. 全量图表展示区
 st.markdown("<br>", unsafe_allow_html=True)
-col_chart1, col_chart2 = st.columns([6, 4])
 
-with col_chart1:
-    st.markdown("##### 📈 流量与点击趋势 (历史数据)")
-    # 绘制历史趋势折线图
-    fig1 = px.line(df, x='日期', y=['流量(GA4)', '点击(GSC)'], 
-                   color_discrete_sequence=["#FF5E8E", "#9B72F0"])
-    fig1.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", margin=dict(l=0, r=0, t=20, b=0))
-    fig1.update_traces(mode='lines+markers', line=dict(width=3))
-    st.plotly_chart(fig1, use_container_width=True)
+# -- 第一排：Superset 销售额 (柱状图) + 漏斗转化率 (折线图) --
+row1_col1, row1_col2 = st.columns(2)
+with row1_col1:
+    st.markdown("##### 🛒 销售额趋势 (Superset)")
+    fig_sales = px.bar(df_filtered, x='日期', y='销售额(superset)', color_discrete_sequence=[COLORS[0]])
+    st.plotly_chart(apply_chart_style(fig_sales), use_container_width=True)
 
-with col_chart2:
-    st.markdown("##### 🍰 流量结构分布 (选中周)")
-    # 提取 Blog 和 站内的流量画饼图
-    donut_data = pd.DataFrame({
-        'Source': ['Blog流量', '站内流量'],
-        'Value': [current_data['流量(Blog)'], current_data['流量(站内)']]
-    })
-    fig2 = px.pie(donut_data, values='Value', names='Source', hole=0.6, 
-                  color_discrete_sequence=["#FF5E8E", "#9B72F0"])
-    fig2.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", margin=dict(l=0, r=0, t=20, b=0))
-    st.plotly_chart(fig2, use_container_width=True)
+with row1_col2:
+    st.markdown("##### 🔄 各环节转化率 (Superset)")
+    rates_cols = ['转化率(superset)', '加购率(superset)', 'checkout率(superset)', '订单提交率(superset)', '支付成功率(superset)']
+    fig_rates = px.line(df_filtered, x='日期', y=rates_cols, color_discrete_sequence=COLORS)
+    fig_rates.update_traces(mode='lines+markers')
+    st.plotly_chart(apply_chart_style(fig_rates), use_container_width=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# -- 第二排：总流量/点击 + 来源流量 --
+row2_col1, row2_col2 = st.columns(2)
+with row2_col1:
+    st.markdown("##### 🌐 GA4流量与GSC点击")
+    fig_traffic = px.line(df_filtered, x='日期', y=['流量(GA4)', '点击(GSC)'], color_discrete_sequence=COLORS)
+    fig_traffic.update_traces(mode='lines+markers')
+    st.plotly_chart(apply_chart_style(fig_traffic), use_container_width=True)
+
+with row2_col2:
+    st.markdown("##### 👥 流量结构 (Blog vs 站内)")
+    fig_source = px.line(df_filtered, x='日期', y=['流量(Blog)', '流量(站内)'], color_discrete_sequence=COLORS)
+    fig_source.update_traces(mode='lines+markers')
+    st.plotly_chart(apply_chart_style(fig_source), use_container_width=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# -- 第三排：点击明细 + AI Performance --
+row3_col1, row3_col2 = st.columns(2)
+with row3_col1:
+    st.markdown("##### 🖱️ 细分点击趋势")
+    clicks_cols = ['点击(非品牌词)', '点击(Blog)', '点击(非Blog)', '点击(非品牌词BlogUTM)']
+    fig_clicks = px.line(df_filtered, x='日期', y=clicks_cols, color_discrete_sequence=COLORS)
+    fig_clicks.update_traces(mode='lines+markers')
+    st.plotly_chart(apply_chart_style(fig_clicks), use_container_width=True)
+
+with row3_col2:
+    st.markdown("##### 🤖 AI Performance 展示量")
+    ai_perf_cols = ['AI Performance(总展示)', 'AI Performance(非Blog)', 'AI Performance(Blog)']
+    fig_ai_perf = px.line(df_filtered, x='日期', y=ai_perf_cols, color_discrete_sequence=COLORS)
+    fig_ai_perf.update_traces(mode='lines+markers')
+    st.plotly_chart(apply_chart_style(fig_ai_perf), use_container_width=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# -- 第四排：AI Assistant (柱状图+折线图双轴) --
+st.markdown("##### 💬 AI Assistant 销售额与流量对比")
+# 使用 plotly graph_objects 实现双轴
+fig_ai = go.Figure()
+fig_ai.add_trace(go.Bar(x=df_filtered['日期'], y=df_filtered['销售额(AI Assistant)'], name='销售额 (Bar)', marker_color=COLORS[0]))
+fig_ai.add_trace(go.Scatter(x=df_filtered['日期'], y=df_filtered['流量(AI Assistant)'], name='流量 (Line)', yaxis='y2', line=dict(color=COLORS[1], width=3), mode='lines+markers'))
+
+# 专门针对双轴图进行样式设置
+fig_ai.update_layout(
+    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+    margin=dict(l=0, r=0, t=30, b=0),
+    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    yaxis=dict(title='销售额', rangemode='tozero', gridcolor='rgba(0,0,0,0.05)'),
+    yaxis2=dict(title='流量', overlaying='y', side='right', rangemode='tozero', showgrid=False)
+)
+st.plotly_chart(fig_ai, use_container_width=True)
