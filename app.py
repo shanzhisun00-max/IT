@@ -12,10 +12,23 @@ st.markdown("""
     .stApp { background-color: #FDF9FA; font-family: 'Inter', sans-serif; }
     h1 { font-family: 'Playfair Display', serif; color: #1A1A1A; font-size: 2.8rem !important; margin-bottom: 0px !important; padding-bottom: 0px !important; }
     .subtitle { color: #666666; font-size: 1rem; margin-bottom: 2rem; }
-    .metric-card { background-color: #FFFFFF; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-bottom: 16px; }
-    .metric-title { color: #7A7A7A; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 8px;}
-    .metric-value { color: #1A1A1A; font-size: 1.8rem; font-weight: 700; margin: 8px 0; }
-    .metric-trend { font-size: 0.8rem; font-weight: 600; }
+    
+    /* 核心修改：正方形卡片样式 */
+    .metric-card { 
+        background-color: #FFFFFF; 
+        border-radius: 16px; 
+        padding: 16px; 
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03); 
+        border: 1px solid rgba(0,0,0,0.02); 
+        margin-bottom: 16px; 
+        aspect-ratio: 1 / 1; /* 强制正方形 */
+        display: flex;
+        flex-direction: column;
+        justify-content: center; /* 内容垂直居中 */
+    }
+    .metric-title { color: #7A7A7A; font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 6px; margin-bottom: 8px;}
+    .metric-value { color: #1A1A1A; font-size: 1.5rem; font-weight: 700; margin: 0 0 8px 0; line-height: 1.2;}
+    .metric-trend { font-size: 0.75rem; font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -45,7 +58,7 @@ dates = df['日期'].tolist()
 
 # 3. 侧边栏与时间筛选
 with st.sidebar:
-    st.markdown("### ⚙️ :it:数据看板控制台")
+    st.markdown("### ⚙️ 数据看板控制台")
     st.divider()
     
     st.markdown("#### 📌 核心指标设置")
@@ -76,7 +89,7 @@ st.markdown("<h1>Weekly Analytics Dashboard</h1>", unsafe_allow_html=True)
 st.markdown(f"<div class='subtitle'>Track. Analyze. Optimize. Grow. ✨ | 当前指标周：{selected_week}</div>", unsafe_allow_html=True)
 
 
-# 5. 核心指标卡片区 (多排自定义布局)
+# 5. 核心指标卡片区
 st.markdown("##### 💡 核心指标总览")
 
 def create_compare_card(title, current_val, prev_val, is_currency=False, is_percent=False, icon="👁️"):
@@ -106,31 +119,32 @@ def create_compare_card(title, current_val, prev_val, is_currency=False, is_perc
     </div>
     """
 
-# --- 第一排 (4个指标) ---
-r1_c1, r1_c2, r1_c3, r1_c4 = st.columns(4)
-with r1_c1: st.markdown(create_compare_card("销售额 (Superset)", current_data['销售额(superset)'], prev_data['销售额(superset)'] if prev_data is not None else None, is_currency=True, icon="💰"), unsafe_allow_html=True)
-with r1_c2: st.markdown(create_compare_card("流量 (GA4)", current_data['流量(GA4)'], prev_data['流量(GA4)'] if prev_data is not None else None, icon="🌐"), unsafe_allow_html=True)
-with r1_c3: st.markdown(create_compare_card("流量 (Blog)", current_data['流量(Blog)'], prev_data['流量(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
-with r1_c4: st.markdown(create_compare_card("流量 (站内)", current_data['流量(站内)'], prev_data['流量(站内)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
+# 核心修改：统一使用 st.columns(5)，不满5个的列留空，实现靠左对齐且等宽
+# --- 第一排 (4个指标，最后1列空置) ---
+r1 = st.columns(5)
+with r1[0]: st.markdown(create_compare_card("销售额 (Superset)", current_data['销售额(superset)'], prev_data['销售额(superset)'] if prev_data is not None else None, is_currency=True, icon="💰"), unsafe_allow_html=True)
+with r1[1]: st.markdown(create_compare_card("流量 (GA4)", current_data['流量(GA4)'], prev_data['流量(GA4)'] if prev_data is not None else None, icon="🌐"), unsafe_allow_html=True)
+with r1[2]: st.markdown(create_compare_card("流量 (Blog)", current_data['流量(Blog)'], prev_data['流量(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
+with r1[3]: st.markdown(create_compare_card("流量 (站内)", current_data['流量(站内)'], prev_data['流量(站内)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
 
-# --- 第二排 (5个指标) ---
-r2_c1, r2_c2, r2_c3, r2_c4, r2_c5 = st.columns(5)
-with r2_c1: st.markdown(create_compare_card("点击 (GSC)", current_data['点击(GSC)'], prev_data['点击(GSC)'] if prev_data is not None else None, icon="🖱️"), unsafe_allow_html=True)
-with r2_c2: st.markdown(create_compare_card("点击 (非品牌词)", current_data['点击(非品牌词)'], prev_data['点击(非品牌词)'] if prev_data is not None else None, icon="🔍"), unsafe_allow_html=True)
-with r2_c3: st.markdown(create_compare_card("点击 (Blog)", current_data['点击(Blog)'], prev_data['点击(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
-with r2_c4: st.markdown(create_compare_card("点击 (非Blog)", current_data['点击(非Blog)'], prev_data['点击(非Blog)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
-with r2_c5: st.markdown(create_compare_card("点击 (非品牌词BlogUTM)", current_data['点击(非品牌词BlogUTM)'], prev_data['点击(非品牌词BlogUTM)'] if prev_data is not None else None, icon="🔗"), unsafe_allow_html=True)
+# --- 第二排 (5个指标，填满) ---
+r2 = st.columns(5)
+with r2[0]: st.markdown(create_compare_card("点击 (GSC)", current_data['点击(GSC)'], prev_data['点击(GSC)'] if prev_data is not None else None, icon="🖱️"), unsafe_allow_html=True)
+with r2[1]: st.markdown(create_compare_card("点击 (非品牌词)", current_data['点击(非品牌词)'], prev_data['点击(非品牌词)'] if prev_data is not None else None, icon="🔍"), unsafe_allow_html=True)
+with r2[2]: st.markdown(create_compare_card("点击 (Blog)", current_data['点击(Blog)'], prev_data['点击(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
+with r2[3]: st.markdown(create_compare_card("点击 (非Blog)", current_data['点击(非Blog)'], prev_data['点击(非Blog)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
+with r2[4]: st.markdown(create_compare_card("非品牌词BlogUTM", current_data['点击(非品牌词BlogUTM)'], prev_data['点击(非品牌词BlogUTM)'] if prev_data is not None else None, icon="🔗"), unsafe_allow_html=True)
 
-# --- 第三排 (2个指标) ---
-r3_c1, r3_c2 = st.columns(2)
-with r3_c1: st.markdown(create_compare_card("销售额 (AI Assistant)", current_data['销售额(AI Assistant)'], prev_data['销售额(AI Assistant)'] if prev_data is not None else None, is_currency=True, icon="🤖💰"), unsafe_allow_html=True)
-with r3_c2: st.markdown(create_compare_card("流量 (AI Assistant)", current_data['流量(AI Assistant)'], prev_data['流量(AI Assistant)'] if prev_data is not None else None, icon="🤖👥"), unsafe_allow_html=True)
+# --- 第三排 (2个指标，最后3列空置) ---
+r3 = st.columns(5)
+with r3[0]: st.markdown(create_compare_card("销售额 (AI Assis)", current_data['销售额(AI Assistant)'], prev_data['销售额(AI Assistant)'] if prev_data is not None else None, is_currency=True, icon="🤖💰"), unsafe_allow_html=True)
+with r3[1]: st.markdown(create_compare_card("流量 (AI Assis)", current_data['流量(AI Assistant)'], prev_data['流量(AI Assistant)'] if prev_data is not None else None, icon="🤖👥"), unsafe_allow_html=True)
 
-# --- 第四排 (3个指标) ---
-r4_c1, r4_c2, r4_c3 = st.columns(3)
-with r4_c1: st.markdown(create_compare_card("AI Performance (总展示)", current_data['AI Performance(总展示)'], prev_data['AI Performance(总展示)'] if prev_data is not None else None, icon="✨"), unsafe_allow_html=True)
-with r4_c2: st.markdown(create_compare_card("AI Perf (非Blog)", current_data['AI Performance(非Blog)'], prev_data['AI Performance(非Blog)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
-with r4_c3: st.markdown(create_compare_card("AI Perf (Blog)", current_data['AI Performance(Blog)'], prev_data['AI Performance(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
+# --- 第四排 (3个指标，最后2列空置) ---
+r4 = st.columns(5)
+with r4[0]: st.markdown(create_compare_card("AI Perf (总展示)", current_data['AI Performance(总展示)'], prev_data['AI Performance(总展示)'] if prev_data is not None else None, icon="✨"), unsafe_allow_html=True)
+with r4[1]: st.markdown(create_compare_card("AI Perf (非Blog)", current_data['AI Performance(非Blog)'], prev_data['AI Performance(非Blog)'] if prev_data is not None else None, icon="🏠"), unsafe_allow_html=True)
+with r4[2]: st.markdown(create_compare_card("AI Perf (Blog)", current_data['AI Performance(Blog)'], prev_data['AI Performance(Blog)'] if prev_data is not None else None, icon="📝"), unsafe_allow_html=True)
 
 
 # 6. 通用图表设置函数
