@@ -45,14 +45,14 @@ dates = df['日期'].tolist()
 
 # 3. 侧边栏与时间筛选
 with st.sidebar:
-    st.markdown("###  🇮🇹IT数据看板控制台")
+    st.markdown("### IT数据看板控制台")
     st.divider()
     
-    st.markdown("#### 📌 核心指标设置")
+    st.markdown("#### 周期选择")
     selected_week = st.selectbox("选择要查看的单周", dates, index=len(dates)-1)
     
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("#### 📈 趋势图时间范围")
+    st.markdown("#### 趋势图时间范围")
     # 默认选中第一周到最后一周
     start_week, end_week = st.select_slider(
         "滑动选择图表展示周期",
@@ -73,7 +73,7 @@ current_data = df.iloc[current_idx]
 prev_data = df.iloc[current_idx - 1] if current_idx > 0 else None
 
 # 4. 主视觉区头部
-st.markdown("<h1>Weekly Analytics Dashboard</h1>", unsafe_allow_html=True)
+st.markdown("<h1>IT Weekly Analytics Dashboard</h1>", unsafe_allow_html=True)
 st.markdown(f"<div class='subtitle'>Track. Analyze. Optimize. Grow. ✨ | 当前指标周：{selected_week}</div>", unsafe_allow_html=True)
 
 # 5. 核心指标卡片区 (带两周对比)
@@ -110,7 +110,7 @@ def create_compare_card(title, current_val, prev_val, is_currency=False, is_perc
 with col1: 
     st.markdown(create_compare_card("销售额", current_data['销售额(superset)'], prev_data['销售额(superset)'] if prev_data is not None else None, is_currency=True, icon="💰"), unsafe_allow_html=True)
 with col2: 
-    st.markdown(create_compare_card("转化率", current_data['转化率(superset)'], prev_data['转化率(superset)'] if prev_data is not None else None, is_percent=True, icon="📈"), unsafe_allow_html=True)
+    st.markdown(create_compare_card("点击", current_data['点击(非品牌词BlogUTM)'], prev_data['点击(非品牌词BlogUTM)'] if prev_data is not None else None, is_percent=True, icon="📈"), unsafe_allow_html=True)
 with col3: 
     st.markdown(create_compare_card("总流量 (GA4)", current_data['流量(GA4)'], prev_data['流量(GA4)'] if prev_data is not None else None, icon="👥"), unsafe_allow_html=True)
 with col4: 
@@ -155,7 +155,7 @@ st.plotly_chart(apply_chart_style(fig_traffic), use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 # -- 第四张图：流量结构 --
-st.markdown("##### 👥 流量结构 (Blog vs 站内)")
+st.markdown("##### 👥 GA4流量 (Blog vs 站内)")
 fig_source = px.line(df_filtered, x='日期', y=['流量(Blog)', '流量(站内)'], color_discrete_sequence=COLORS)
 fig_source.update_traces(mode='lines+markers')
 st.plotly_chart(apply_chart_style(fig_source), use_container_width=True)
@@ -163,7 +163,7 @@ st.plotly_chart(apply_chart_style(fig_source), use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 # -- 第五张图：细分点击趋势 --
-st.markdown("##### 🖱️ 细分点击趋势")
+st.markdown("##### 🖱️ GSC点击")
 clicks_cols = ['点击(非品牌词)', '点击(Blog)', '点击(非Blog)', '点击(非品牌词BlogUTM)']
 fig_clicks = px.line(df_filtered, x='日期', y=clicks_cols, color_discrete_sequence=COLORS)
 fig_clicks.update_traces(mode='lines+markers')
