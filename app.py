@@ -188,7 +188,7 @@ st.plotly_chart(apply_chart_style(fig_traffic), use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 # -- 第四张图：流量结构 --
-st.markdown("##### 👥 流量结构 (Blog vs 站内)")
+st.markdown("##### 👥 GA4流量结构 (Blog vs 站内)")
 fig_source = px.line(df_filtered, x='日期', y=['流量(Blog)', '流量(站内)'], color_discrete_sequence=COLORS)
 fig_source.update_traces(mode='lines+markers')
 st.plotly_chart(apply_chart_style(fig_source), use_container_width=True)
@@ -196,7 +196,7 @@ st.plotly_chart(apply_chart_style(fig_source), use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 # -- 第五张图：细分点击趋势 --
-st.markdown("##### 🖱️ 细分点击趋势")
+st.markdown("##### 🖱️ GSC点击趋势")
 clicks_cols = ['点击(非品牌词)', '点击(Blog)', '点击(非Blog)', '点击(非品牌词BlogUTM)']
 fig_clicks = px.line(df_filtered, x='日期', y=clicks_cols, color_discrete_sequence=COLORS)
 fig_clicks.update_traces(mode='lines+markers')
