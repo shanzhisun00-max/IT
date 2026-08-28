@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 # 1. 页面与全局设置
-st.set_page_config(page_title="周报数据看板", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="IT周报数据", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
 <style>
@@ -81,7 +81,6 @@ st.markdown("##### 💡 核心指标总览")
 col1, col2, col3, col4 = st.columns(4)
 
 def create_compare_card(title, current_val, prev_val, is_currency=False, is_percent=False, icon="👁️"):
-    # 格式化数值
     prefix = "$" if is_currency else ""
     suffix = "%" if is_percent else ""
     fmt_curr = f"{current_val:.2f}" if isinstance(current_val, float) else f"{int(current_val)}"
@@ -89,9 +88,8 @@ def create_compare_card(title, current_val, prev_val, is_currency=False, is_perc
     if prev_val is not None:
         diff = current_val - prev_val
         trend_symbol = "↑" if diff > 0 else ("↓" if diff < 0 else "-")
-        trend_color = "#4CAF50" if diff >= 0 else "#F44336" # 涨绿跌红
+        trend_color = "#4CAF50" if diff >= 0 else "#F44336"
         
-        # 如果是数值，计算百分比变化；如果是比率，直接显示差值
         if is_percent:
             trend_text = f"{trend_symbol} {abs(diff):.2f}% vs 上周"
         else:
@@ -118,80 +116,99 @@ with col3:
 with col4: 
     st.markdown(create_compare_card("总点击 (GSC)", current_data['点击(GSC)'], prev_data['点击(GSC)'] if prev_data is not None else None, icon="🖱️"), unsafe_allow_html=True)
 
-# 6. 通用图表设置函数
+# 6. 通用图表设置函数 (增大 top margin 防止标签被遮挡)
 def apply_chart_style(fig):
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", 
-        margin=dict(l=0, r=0, t=30, b=0),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1) # 图例放顶部
+        margin=dict(l=0, r=0, t=50, b=0),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
-    fig.update_yaxes(rangemode="tozero", gridcolor='rgba(0,0,0,0.05)') # Y轴从0开始，加淡灰色网格线
+    fig.update_yaxes(rangemode="tozero", gridcolor='rgba(0,0,0,0.05)')
     return fig
 
-# 7. 全量图表展示区
+# 7. 全量图表展示区 (一排一张图)
 st.markdown("<br>", unsafe_allow_html=True)
 
-# -- 第一排：Superset 销售额 (柱状图) + 漏斗转化率 (折线图) --
-row1_col1, row1_col2 = st.columns(2)
-with row1_col1:
-    st.markdown("##### 🛒 销售额趋势 (Superset)")
-    fig_sales = px.bar(df_filtered, x='日期', y='销售额(superset)', color_discrete_sequence=[COLORS[0]])
-    st.plotly_chart(apply_chart_style(fig_sales), use_container_width=True)
-
-with row1_col2:
-    st.markdown("##### 🔄 各环节转化率 (Superset)")
-    rates_cols = ['转化率(superset)', '加购率(superset)', 'checkout率(superset)', '订单提交率(superset)', '支付成功率(superset)']
-    fig_rates = px.line(df_filtered, x='日期', y=rates_cols, color_discrete_sequence=COLORS)
-    fig_rates.update_traces(mode='lines+markers')
-    st.plotly_chart(apply_chart_style(fig_rates), use_container_width=True)
+# -- 第一张图：Superset 销售额 (带标签的柱状图) --
+st.markdown("##### 🛒 销售额趋势 (Superset)")
+fig_sales = px.bar(df_filtered, x='日期', y='销售额(superset)', color_discrete_sequence=[COLORS[0]], text='销售额(superset)')
+fig_sales.update_traces(texttemplate='$%{text:.2f}', textposition='outside', cliponaxis=False)
+st.plotly_chart(apply_chart_style(fig_sales), use_container_width=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# -- 第二排：总流量/点击 + 来源流量 --
-row2_col1, row2_col2 = st.columns(2)
-with row2_col1:
-    st.markdown("##### 🌐 GA4流量与GSC点击")
-    fig_traffic = px.line(df_filtered, x='日期', y=['流量(GA4)', '点击(GSC)'], color_discrete_sequence=COLORS)
-    fig_traffic.update_traces(mode='lines+markers')
-    st.plotly_chart(apply_chart_style(fig_traffic), use_container_width=True)
-
-with row2_col2:
-    st.markdown("##### 👥 流量结构 (Blog vs 站内)")
-    fig_source = px.line(df_filtered, x='日期', y=['流量(Blog)', '流量(站内)'], color_discrete_sequence=COLORS)
-    fig_source.update_traces(mode='lines+markers')
-    st.plotly_chart(apply_chart_style(fig_source), use_container_width=True)
+# -- 第二张图：各环节转化率 --
+st.markdown("##### 🔄 各环节转化率 (Superset)")
+rates_cols = ['转化率(superset)', '加购率(superset)', 'checkout率(superset)', '订单提交率(superset)', '支付成功率(superset)']
+fig_rates = px.line(df_filtered, x='日期', y=rates_cols, color_discrete_sequence=COLORS)
+fig_rates.update_traces(mode='lines+markers')
+st.plotly_chart(apply_chart_style(fig_rates), use_container_width=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# -- 第三排：点击明细 + AI Performance --
-row3_col1, row3_col2 = st.columns(2)
-with row3_col1:
-    st.markdown("##### 🖱️ 细分点击趋势")
-    clicks_cols = ['点击(非品牌词)', '点击(Blog)', '点击(非Blog)', '点击(非品牌词BlogUTM)']
-    fig_clicks = px.line(df_filtered, x='日期', y=clicks_cols, color_discrete_sequence=COLORS)
-    fig_clicks.update_traces(mode='lines+markers')
-    st.plotly_chart(apply_chart_style(fig_clicks), use_container_width=True)
-
-with row3_col2:
-    st.markdown("##### 🤖 AI Performance 展示量")
-    ai_perf_cols = ['AI Performance(总展示)', 'AI Performance(非Blog)', 'AI Performance(Blog)']
-    fig_ai_perf = px.line(df_filtered, x='日期', y=ai_perf_cols, color_discrete_sequence=COLORS)
-    fig_ai_perf.update_traces(mode='lines+markers')
-    st.plotly_chart(apply_chart_style(fig_ai_perf), use_container_width=True)
+# -- 第三张图：GA4流量与GSC点击 --
+st.markdown("##### 🌐 GA4流量与GSC点击")
+fig_traffic = px.line(df_filtered, x='日期', y=['流量(GA4)', '点击(GSC)'], color_discrete_sequence=COLORS)
+fig_traffic.update_traces(mode='lines+markers')
+st.plotly_chart(apply_chart_style(fig_traffic), use_container_width=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# -- 第四排：AI Assistant (柱状图+折线图双轴) --
+# -- 第四张图：流量结构 --
+st.markdown("##### 👥 流量结构 (Blog vs 站内)")
+fig_source = px.line(df_filtered, x='日期', y=['流量(Blog)', '流量(站内)'], color_discrete_sequence=COLORS)
+fig_source.update_traces(mode='lines+markers')
+st.plotly_chart(apply_chart_style(fig_source), use_container_width=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# -- 第五张图：细分点击趋势 --
+st.markdown("##### 🖱️ 细分点击趋势")
+clicks_cols = ['点击(非品牌词)', '点击(Blog)', '点击(非Blog)', '点击(非品牌词BlogUTM)']
+fig_clicks = px.line(df_filtered, x='日期', y=clicks_cols, color_discrete_sequence=COLORS)
+fig_clicks.update_traces(mode='lines+markers')
+st.plotly_chart(apply_chart_style(fig_clicks), use_container_width=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# -- 第六张图：AI Performance 展示量 --
+st.markdown("##### 🤖 AI Performance 展示量")
+ai_perf_cols = ['AI Performance(总展示)', 'AI Performance(非Blog)', 'AI Performance(Blog)']
+fig_ai_perf = px.line(df_filtered, x='日期', y=ai_perf_cols, color_discrete_sequence=COLORS)
+fig_ai_perf.update_traces(mode='lines+markers')
+st.plotly_chart(apply_chart_style(fig_ai_perf), use_container_width=True)
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# -- 第七张图：AI Assistant (带标签柱状图+折线图双轴) --
 st.markdown("##### 💬 AI Assistant 销售额与流量对比")
-# 使用 plotly graph_objects 实现双轴
 fig_ai = go.Figure()
-fig_ai.add_trace(go.Bar(x=df_filtered['日期'], y=df_filtered['销售额(AI Assistant)'], name='销售额 (Bar)', marker_color=COLORS[0]))
-fig_ai.add_trace(go.Scatter(x=df_filtered['日期'], y=df_filtered['流量(AI Assistant)'], name='流量 (Line)', yaxis='y2', line=dict(color=COLORS[1], width=3), mode='lines+markers'))
 
-# 专门针对双轴图进行样式设置
+# 柱状图部分增加数据标签
+fig_ai.add_trace(go.Bar(
+    x=df_filtered['日期'], 
+    y=df_filtered['销售额(AI Assistant)'], 
+    name='销售额 (Bar)', 
+    marker_color=COLORS[0],
+    text=df_filtered['销售额(AI Assistant)'],
+    texttemplate='$%{text:.2f}',
+    textposition='outside',
+    cliponaxis=False
+))
+
+# 折线图部分保持原样
+fig_ai.add_trace(go.Scatter(
+    x=df_filtered['日期'], 
+    y=df_filtered['流量(AI Assistant)'], 
+    name='流量 (Line)', 
+    yaxis='y2', 
+    line=dict(color=COLORS[1], width=3), 
+    mode='lines+markers'
+))
+
 fig_ai.update_layout(
     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-    margin=dict(l=0, r=0, t=30, b=0),
+    margin=dict(l=0, r=0, t=50, b=0),
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     yaxis=dict(title='销售额', rangemode='tozero', gridcolor='rgba(0,0,0,0.05)'),
     yaxis2=dict(title='流量', overlaying='y', side='right', rangemode='tozero', showgrid=False)
