@@ -45,6 +45,7 @@ def load_monthly_data():
     # 注意链接里的 format 改成了 xlsx
     excel_url = "https://docs.google.com/spreadsheets/d/1eOy9c2EIAD1mGmy7LqF5O_9ITQNga21F4fWJ24Bztwc/export?format=xlsx"
     
+    # ⚠️ 请确保你的 Google 表格底部，那个存放月份目标的 Sheet 名字叫 "月度数据"
     df = pd.read_excel(excel_url, sheet_name="月报")
     
     # 同样进行转置清洗
