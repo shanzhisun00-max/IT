@@ -22,7 +22,7 @@ st.markdown("""
         border: 1px solid rgba(0,0,0,0.02); 
         margin-bottom: 20px; /* 卡片上下的间距变大 */
         max-width: 240px; /* 强制限制卡片最大宽度，让它显得更小 */
-        height: 140px
+        height: 180px
         display: flex;
         flex-direction: column;
         justify-content: center; 
