@@ -45,7 +45,7 @@ dates = df['日期'].tolist()
 
 # 3. 侧边栏与时间筛选
 with st.sidebar:
-    st.markdown("### ⚙️ 数据看板控制台")
+    st.markdown("###  🇮🇹IT数据看板控制台")
     st.divider()
     
     st.markdown("#### 📌 核心指标设置")
