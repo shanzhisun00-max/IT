@@ -33,10 +33,9 @@ COLORS = ["#2D5B93", "#F4A261", "#8CA8D1", "#E07A5F", "#3D405B"]
 @st.cache_data(ttl=600)
 def load_daily_data():
     excel_url = "https://docs.google.com/spreadsheets/d/1eOy9c2EIAD1mGmy7LqF5O_9ITQNga21F4fWJ24Bztwc/export?format=xlsx"
-    # 读取名为“日报”的 Sheet
     df = pd.read_excel(excel_url, sheet_name="日报")
     
-    # 转置表格：第一列变表头，原本的表头（日期）变行索引
+    # 转置表格
     df = df.set_index(df.columns[0]).T
     df.reset_index(inplace=True)
     df.rename(columns={'index': '日期'}, inplace=True)
@@ -45,11 +44,11 @@ def load_daily_data():
     df['日期'] = pd.to_datetime(df['日期'], errors='coerce')
     df = df.dropna(subset=['日期']).sort_values('日期')
     
-    # 数据清洗：去除 $、%、逗号，转为数字
+    # 数据清洗：去除 $、%、逗号，转为数字。去掉 fillna(0) 保留空值(NaN)，让空数据不显示 0
     for col in df.columns:
         if col != '日期':
             df[col] = df[col].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.replace('%', '', regex=False)
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+            df[col] = pd.to_numeric(df[col], errors='coerce') 
             
     return df
 
@@ -59,7 +58,7 @@ except Exception as e:
     st.error("⚠️ 读取数据失败，请检查表格中是否有名为 '日报' 的 Sheet。")
     st.stop()
 
-# 定义基准日期 (以数据表中的最新日期为准，防止数据没更新导致空白)
+# 定义基准日期
 max_date = df['日期'].max().date()
 min_date = df['日期'].min().date()
 
@@ -67,7 +66,6 @@ min_date = df['日期'].min().date()
 with st.sidebar:
     st.markdown("### ⚙️ 看板全局设置")
     
-    # 全局时间控制 (默认最近30天)
     default_start = max_date - timedelta(days=30)
     global_date_range = st.date_input(
         "📅 全局时间范围",
@@ -95,15 +93,14 @@ st.markdown(f"<div class='subtitle'>Global Range: {g_start} to {g_end} | Real-ti
 # ----------------- 顶部：当月进度条 -----------------
 st.markdown("##### 🏆 自然月累计进度 (从本月1号至最新数据)")
 
-# 自动计算当月数据
 current_month_start = pd.to_datetime(max_date).replace(day=1)
 df_current_month = df[df['日期'] >= current_month_start]
 
-# 累计当月数值
+# pandas sum 默认会忽略 NaN
 current_sales = df_current_month['Superset SEO销售额'].sum()
 current_traffic = df_current_month['SEO流量'].sum()
 
-def create_progress_ring(actual, goal, color, prefix=""):
+def create_progress_ring(actual, goal, color):
     rate = actual / goal if goal > 0 else 0
     display_pct = f"{rate * 100:.1f}%"
     rate_capped = min(rate, 1.0)
@@ -131,7 +128,6 @@ with c2:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ----------------- 图表渲染辅助函数 -----------------
-# 过滤数据的函数 (根据图表的独立选择器)
 def get_filtered_df(local_filter_val):
     if local_filter_val == "跟随全局":
         return df[(df['日期'].dt.date >= g_start) & (df['日期'].dt.date <= g_end)]
@@ -141,25 +137,21 @@ def get_filtered_df(local_filter_val):
         return df[df['日期'].dt.date >= (max_date - timedelta(days=29))]
     elif local_filter_val == "本月 (自然月)":
         return df[df['日期'] >= current_month_start]
-    else: # 全部
+    else: 
         return df
 
-# 渲染卡片和图表的通用模板
 def render_chart_container(title, cols, chart_key, is_area=False):
     st.markdown('<div class="chart-container">', unsafe_allow_html=True)
     
-    # 头部：左侧标题，右侧独立时间选择器
-    head_col1, head_col2 = st.columns([7, 3])
+    head_col1, head_col2 = st.columns([8, 2])
     with head_col1:
         st.markdown(f"<span style='font-weight:600; color:#1E3A8A; font-size:1.1rem;'>{title}</span>", unsafe_allow_html=True)
     with head_col2:
         local_range = st.selectbox(" ", ["跟随全局", "最近7天", "最近30天", "本月 (自然月)", "全部"], 
                                    key=chart_key, label_visibility="collapsed")
     
-    # 获取过滤后的数据
     plot_df = get_filtered_df(local_range)
     
-    # 画图
     if is_area:
         fig = px.area(plot_df, x='日期', y=cols, color_discrete_sequence=COLORS)
     else:
@@ -174,25 +166,17 @@ def render_chart_container(title, cols, chart_key, is_area=False):
     st.plotly_chart(fig, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ----------------- 图表展示区 -----------------
+# ----------------- 图表展示区 (全部纵向独占一行) -----------------
 
-# 第一排：销售额对比
-row1_c1, row1_c2 = st.columns(2)
-with row1_c1:
-    render_chart_container("🛒 SEO 销售额对比 (Superset vs GA4)", ['Superset SEO销售额', 'GA4 SEO销售额'], "chart_seo_sales")
-with row1_c2:
-    render_chart_container("💰 网站总销售额对比 (Superset vs GA4)", ['Superset 总销售额', 'GA4 网站总销售额'], "chart_total_sales")
+render_chart_container("🛒 SEO 销售额对比 (Superset vs GA4)", ['Superset SEO销售额', 'GA4 SEO销售额'], "chart_seo_sales")
+render_chart_container("💰 网站总销售额对比 (Superset vs GA4)", ['Superset 总销售额', 'GA4 网站总销售额'], "chart_total_sales")
+render_chart_container("👥 SEO 流量来源结构", ['SEO流量', 'SEO 站内流量', 'SEO Blog流量'], "chart_seo_traffic")
+render_chart_container("🌐 网站总流量", ['网站总流量'], "chart_website_traffic")
+render_chart_container("📉 跳出率", ['跳出率'], "chart_bounce_rate")
 
-# 第二排：流量明细
-row2_c1, row2_c2 = st.columns(2)
-with row2_c1:
-    render_chart_container("👥 SEO 流量来源结构", ['SEO流量', 'SEO 站内流量', 'SEO Blog流量'], "chart_seo_traffic")
-with row2_c2:
-    render_chart_container("🌐 网站总流量与跳出率", ['网站总流量', '跳出率'], "chart_total_traffic")
-
-# 第三排：AI Assistant (特殊双轴图表，需要单独画)
+# ----------------- AI Assistant (特殊双轴图表，带数据标签) -----------------
 st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-head_col1, head_col2 = st.columns([7, 3])
+head_col1, head_col2 = st.columns([8, 2])
 with head_col1:
     st.markdown("<span style='font-weight:600; color:#1E3A8A; font-size:1.1rem;'>🤖 AI Assistant 销售额与流量</span>", unsafe_allow_html=True)
 with head_col2:
@@ -200,13 +184,32 @@ with head_col2:
 
 plot_df_ai = get_filtered_df(local_range_ai)
 fig_ai = go.Figure()
-# 柱状图：销售额
-fig_ai.add_trace(go.Bar(x=plot_df_ai['日期'], y=plot_df_ai['AI Assistant 销售额'], name='销售额 (Bar)', marker_color=COLORS[0]))
+
+# 柱状图：销售额 (增加数据标签 text)
+fig_ai.add_trace(go.Bar(
+    x=plot_df_ai['日期'], 
+    y=plot_df_ai['AI Assistant 销售额'], 
+    name='销售额 (Bar)', 
+    marker_color=COLORS[0],
+    text=plot_df_ai['AI Assistant 销售额'],      # 绑定数据文本
+    texttemplate='$%{text:.2f}',                  # 格式化带美元和2位小数
+    textposition='outside',                       # 显示在柱子外部顶部
+    cliponaxis=False                              # 防止顶部文字被截断
+))
+
 # 折线图：流量
-fig_ai.add_trace(go.Scatter(x=plot_df_ai['日期'], y=plot_df_ai['AI Assistant 流量'], name='流量 (Line)', yaxis='y2', line=dict(color=COLORS[1], width=3), mode='lines+markers'))
+fig_ai.add_trace(go.Scatter(
+    x=plot_df_ai['日期'], 
+    y=plot_df_ai['AI Assistant 流量'], 
+    name='流量 (Line)', 
+    yaxis='y2', 
+    line=dict(color=COLORS[1], width=3), 
+    mode='lines+markers'
+))
 
 fig_ai.update_layout(
-    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", margin=dict(l=0, r=0, t=10, b=0),
+    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", 
+    margin=dict(l=0, r=0, t=30, b=0), # 稍微增加上边距，给文本留出空间
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     yaxis=dict(title='销售额', rangemode='tozero', gridcolor='#F1F5F9'),
     yaxis2=dict(title='流量', overlaying='y', side='right', rangemode='tozero', showgrid=False)
@@ -214,16 +217,8 @@ fig_ai.update_layout(
 st.plotly_chart(fig_ai, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# 第四排：收录数据
-row4_c1, row4_c2 = st.columns(2)
-with row4_c1:
-    render_chart_container("📑 网站收录情况", ['收录'], "chart_index", is_area=True)
-with row4_c2:
-    render_chart_container("📝 Blog 收录情况", ['Blog 收录'], "chart_blog_index", is_area=True)
-
-# 第五排：外链数据
-row5_c1, row5_c2 = st.columns(2)
-with row5_c1:
-    render_chart_container("🔗 外链总数", ['外链'], "chart_backlinks", is_area=True)
-with row5_c2:
-    render_chart_container("🌍 外链域名广度", ['外链域名广度'], "chart_domains", is_area=True)
+# ----------------- 其余图表继续铺满单排 -----------------
+render_chart_container("📑 网站收录情况", ['收录'], "chart_index", is_area=True)
+render_chart_container("📝 Blog 收录情况", ['Blog 收录'], "chart_blog_index", is_area=True)
+render_chart_container("🔗 外链总数", ['外链'], "chart_backlinks", is_area=True)
+render_chart_container("🌍 外链域名广度", ['外链域名广度'], "chart_domains", is_area=True)
