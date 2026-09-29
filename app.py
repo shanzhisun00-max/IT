@@ -187,6 +187,17 @@ st.plotly_chart(apply_chart_style(fig_traffic), use_container_width=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+# -- 新增图表：点击(非Blog)与流量(站内)对比 --
+st.markdown("##### 🆚 点击(非Blog)与流量(站内)对比")
+fig_custom_compare = px.line(
+    df_filtered, 
+    x='日期', 
+    y=['点击(非Blog)', '流量(站内)'], 
+    color_discrete_sequence=COLORS  # 自动调用之前定义好的粉紫配色
+)
+fig_custom_compare.update_traces(mode='lines+markers')
+st.plotly_chart(apply_chart_style(fig_custom_compare), use_container_width=True)
+
 # -- 第四张图：流量结构 --
 st.markdown("##### 👥 GA4流量结构 (Blog vs 站内)")
 fig_source = px.line(df_filtered, x='日期', y=['流量(Blog)', '流量(站内)'], color_discrete_sequence=COLORS)
