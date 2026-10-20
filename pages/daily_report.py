@@ -77,8 +77,8 @@ with st.sidebar:
     st.divider()
     st.markdown("### 🎯 本月目标设定")
     st.caption("用于计算顶部的进度条完成率")
-    target_sales = st.number_input("本月 Superset SEO 销售额目标 ($)", value=50000, step=1000)
-    target_traffic = st.number_input("本月 SEO 流量目标", value=100000, step=1000)
+    target_sales = st.number_input("本月 Superset SEO 销售额目标 ($)", value=4100, step=410)
+    target_traffic = st.number_input("本月 SEO 流量目标", value=5100, step=510)
 
 # 解析全局时间
 if len(global_date_range) == 2:
